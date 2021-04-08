@@ -4,15 +4,15 @@ import yaml
 import torch
 import shutil
 import numpy as np
-import CAMP.Core as core
-import CAMP.FileIO as io
-import CAMP.StructuredGridOperators as so
+import CAMP.camp.Core as core
+import CAMP.camp.FileIO as io
+import CAMP.camp.StructuredGridOperators as so
 
 from scipy.io import loadmat
 from scipy.ndimage.morphology import binary_erosion, binary_dilation
 
 
-def process_mrti_data(rabbit, base_dir, out_path):
+def process_mrti_data(rabbit, out_path):
     rerun = False
     if os.path.exists(f'{out_path}/{rabbit}_thermal_vol.nii.gz') and not rerun:
         print(f'Processing MRTI for {rabbit} ... done')
@@ -50,67 +50,63 @@ def process_mrti_data(rabbit, base_dir, out_path):
     io.SaveITKFile(log_ctd_map, f'{out_path}/{rabbit}_log_ctd_map.nii.gz')
     print('done')
 
-
-def process_masks(rabbit, out_path):
-    rerun = False
-    if os.path.exists(f'{out_path}/{rabbit}_tissue_seg.nii.gz') and not rerun:
-        print(f'Processing Mask for {rabbit} ... done')
-        return
-    print(f'Processing Mask for {rabbit} ... ', end='')
-    data_dir = f'/hdscratch/ucair/AcuteBiomarker/Data/extras/'
-    files = sorted(glob.glob(f'{data_dir}/*'))
-    mat_file = [x for x in files if rabbit in x][0]
-
-    roi_dict = loadmat(mat_file)
-
-    grid = io.LoadITKFile(f'{out_path}/{rabbit}_log_ctd_map.nii.gz')
-
-    nonv = np.transpose(roi_dict['ROInonV'], (2, 1, 0))
-    nonv0 = np.transpose(roi_dict['ROInonV0'], (2, 1, 0))
-    tissue = np.transpose(roi_dict['ROItissue'], (2, 1, 0))
-    tumor = np.transpose(roi_dict['ROItumr'], (2, 1, 0))
-    # mrti_data = np.transpose(mrti_dict['temps'], (2, 1, 0, 3))
-    # ctd_map = np.nan_to_num(np.transpose(mrti_dict['CTD_Map'], (2, 1, 0)), nan=1.0)
-    # ctd_map = np.log(ctd_map)
-    # origin = np.ascontiguousarray(cs_data[0, 0, 0, ::-1])
-
-    nonv0_vol = core.StructuredGrid(
-        size=grid.size,
-        origin=grid.origin,
-        spacing=grid.spacing,
-        tensor=torch.tensor(nonv0).unsqueeze(0),
-        channels=1
-    )
-
-    tumor_vol = core.StructuredGrid(
-        size=grid.size,
-        origin=grid.origin,
-        spacing=grid.spacing,
-        tensor=torch.tensor(tumor).unsqueeze(0),
-        channels=1
-    )
-
-    tissue_vol = core.StructuredGrid(
-        size=grid.size,
-        origin=grid.origin,
-        spacing=grid.spacing,
-        tensor=torch.tensor(tissue).unsqueeze(0),
-        channels=1
-    )
-
-    nonv_vol = core.StructuredGrid(
-        size=grid.size,
-        origin=grid.origin,
-        spacing=grid.spacing,
-        tensor=torch.tensor(nonv).unsqueeze(0),
-        channels=1
-    )
-
-    io.SaveITKFile(nonv_vol, f'{out_path}/{rabbit}_nonv_seg.nii.gz')
-    io.SaveITKFile(nonv0_vol, f'{out_path}/{rabbit}_nonv0_seg.nii.gz')
-    io.SaveITKFile(tumor_vol, f'{out_path}/{rabbit}_tumor_seg.nii.gz')
-    io.SaveITKFile(tissue_vol, f'{out_path}/{rabbit}_tissue_seg.nii.gz')
-    print('done')
+#
+# def process_masks(rabbit, out_path):
+#     rerun = False
+#     if os.path.exists(f'{out_path}/{rabbit}_tissue_seg.nii.gz') and not rerun:
+#         print(f'Processing Mask for {rabbit} ... done')
+#         return
+#     print(f'Processing Mask for {rabbit} ... ', end='')
+#     data_dir = f'/hdscratch/ucair/AcuteBiomarker/Data/extras/'
+#     files = sorted(glob.glob(f'{data_dir}/*'))
+#     mat_file = [x for x in files if rabbit in x][0]
+#
+#     roi_dict = loadmat(mat_file)
+#
+#     grid = io.LoadITKFile(f'{out_path}/{rabbit}_log_ctd_map.nii.gz')
+#
+#     nonv = np.transpose(roi_dict['ROInonV'], (2, 1, 0))
+#     nonv0 = np.transpose(roi_dict['ROInonV0'], (2, 1, 0))
+#     tissue = np.transpose(roi_dict['ROItissue'], (2, 1, 0))
+#     tumor = np.transpose(roi_dict['ROItumr'], (2, 1, 0))
+#
+#     nonv0_vol = core.StructuredGrid(
+#         size=grid.size,
+#         origin=grid.origin,
+#         spacing=grid.spacing,
+#         tensor=torch.tensor(nonv0).unsqueeze(0),
+#         channels=1
+#     )
+#
+#     tumor_vol = core.StructuredGrid(
+#         size=grid.size,
+#         origin=grid.origin,
+#         spacing=grid.spacing,
+#         tensor=torch.tensor(tumor).unsqueeze(0),
+#         channels=1
+#     )
+#
+#     tissue_vol = core.StructuredGrid(
+#         size=grid.size,
+#         origin=grid.origin,
+#         spacing=grid.spacing,
+#         tensor=torch.tensor(tissue).unsqueeze(0),
+#         channels=1
+#     )
+#
+#     nonv_vol = core.StructuredGrid(
+#         size=grid.size,
+#         origin=grid.origin,
+#         spacing=grid.spacing,
+#         tensor=torch.tensor(nonv).unsqueeze(0),
+#         channels=1
+#     )
+#
+#     io.SaveITKFile(nonv_vol, f'{out_path}/{rabbit}_nonv_seg.nii.gz')
+#     io.SaveITKFile(nonv0_vol, f'{out_path}/{rabbit}_nonv0_seg.nii.gz')
+#     io.SaveITKFile(tumor_vol, f'{out_path}/{rabbit}_tumor_seg.nii.gz')
+#     io.SaveITKFile(tissue_vol, f'{out_path}/{rabbit}_tissue_seg.nii.gz')
+#     print('done')
 
 
 def get_param_file_dict(rabbit):
@@ -160,7 +156,7 @@ def get_param_file_dict(rabbit):
     return param_dict
 
     
-def copy_contrast_files(rabbit, base_dir, out_path):
+def copy_contrast_files(rabbit, out_path):
 
     rerun = False
     print(f'Copying files for {rabbit} ... ', end='')
@@ -174,12 +170,12 @@ def copy_contrast_files(rabbit, base_dir, out_path):
              param_file_dict = yaml.load(f, Loader=yaml.FullLoader)
 
     for key in param_file_dict.keys():
-
-        if os.path.exists(f'{out_path}/{key}.nii.gz') and not rerun:
+        file_ext = param_file_dict[key].split('.n')[-1]
+        if os.path.exists(f'{out_path}/{key}.n{file_ext}') and not rerun:
             continue
 
         file = param_file_dict[key]
-        shutil.copy(file, f'{out_path}/{rabbit}_{key}.nii.gz')
+        shutil.copy(file, f'{out_path}/{rabbit}_{key}.n{file_ext}')
 
     print('done')
 
@@ -195,13 +191,13 @@ def generate_hist_label(rabbit, base_dir, out_path):
 
     print(f'Processing label for {rabbit} ... ', end='')
     # Get the path for the
-    try:
-        deform = io.LoadITKFile(f'{out_path}/{rabbit}_day3_to_day0_phi_inv.nii.gz', device=device)
-    except:
-        def_file = f'/home/sci/blakez/ucair/longitudinal/{rabbit}/'
-        def_file += 'deformation_fields/Day3_non_contrast_VIBE_interday_deformation_incomp.nii.gz'
-        deform = io.LoadITKFile(def_file, device=device)
-        io.SaveITKFile(deform, f'{out_path}/{rabbit}_day3_to_day0_phi_inv.nii.gz')
+    # try:
+    deform = io.LoadITKFile(f'{out_path}/{rabbit}_day3_to_day0_phi_inv.nii.gz', device=device)
+    # except:
+    #     def_file = f'/home/sci/blakez/ucair/longitudinal/{rabbit}/'
+    #     def_file += 'deformation_fields/Day3_non_contrast_VIBE_interday_deformation_incomp.nii.gz'
+    #     deform = io.LoadITKFile(def_file, device=device)
+    #     io.SaveITKFile(deform, f'{out_path}/{rabbit}_day3_to_day0_phi_inv.nii.gz')
 
     # Load the ablation to day3 segmentation
     hist_file = f'{base_dir}/{rabbit}/microscopic/recons/all_ablation_segs_to_invivo.nrrd'
@@ -230,13 +226,13 @@ def compile():
             base_dir = '/hdscratch2/'
         else:
             base_dir = '/hdscratch/ucair/'
-        out_path = f'/hdscratch/ucair/AcuteBiomarker/Data/{rabbit}/'
+        out_path = f'/hdscratch2/NoncontrastBiomarker/Data/{rabbit}/'
         if not os.path.exists(out_path):
             os.makedirs(out_path)
-        # process_mrti_data(rabbit, base_dir, out_path)
+        process_mrti_data(rabbit, out_path)
 
         # Get a list of the ablation files
-        # copy_contrast_files(rabbit, base_dir, out_path)
+        copy_contrast_files(rabbit, out_path)
 
         generate_hist_label(rabbit, base_dir, out_path)
 
